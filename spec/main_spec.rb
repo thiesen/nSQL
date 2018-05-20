@@ -94,4 +94,28 @@ describe 'database' do
       'nSQL> ',
     ])
   end
+
+  it 'keeps data after closing connection' do
+    result1 = run_script([
+      'insert 1 xunda xunda@dunha.com',
+      'select',
+      '.exit',
+    ])
+
+    expect(result1).to match_array([
+      'nSQL> Executed.',
+      'nSQL> ',
+    ])
+
+    result2 = run_script([
+      'select',
+      '.exit',
+    ])
+
+    expect(result2).to match_array([
+      'nSQL> (1, xunda, xunda@dunha.com)',
+      'Executed.',
+      'nSQL> ',
+    ])
+  end
 end

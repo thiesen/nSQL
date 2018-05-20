@@ -1,8 +1,8 @@
 describe 'database' do
-  def run_script(commands)
+  def run_script(commands, persist: false)
     raw_output = nil
 
-    IO.popen('./db', 'r+') do |pipe|
+    IO.popen("./db test.db", 'r+') do |pipe|
       commands.each do |command|
         pipe.puts command
       end
@@ -11,6 +11,9 @@ describe 'database' do
 
       raw_output = pipe.gets(nil)
     end
+
+    File.delete('./test.db') unless persist
+
     raw_output.split("\n")
   end
 
@@ -100,7 +103,7 @@ describe 'database' do
       'insert 1 xunda xunda@dunha.com',
       'select',
       '.exit',
-    ])
+    ], persist: true)
 
     expect(result1).to match_array([
       'nSQL> Executed.',
@@ -116,6 +119,48 @@ describe 'database' do
       'nSQL> (1, xunda, xunda@dunha.com)',
       'Executed.',
       'nSQL> ',
+    ])
+  end
+
+  it 'prints constants' do
+    script = [
+      '.constants',
+      '.exit',
+    ]
+
+    result = run_script(script)
+
+    expect(result).to match_array([
+      'nSQL> Constants:',
+      "ROW_SIZE: 293",
+      "COMMON_NODE_HEADER_SIZE: 6",
+      "LEAF_NODE_HEADER_SIZE: 10",
+      "LEAF_NODE_CELL_SIZE: 297",
+      "LEAF_NODE_SPACE_FOR_CELLS: 4106",
+      "LEAF_NODE_MAX_CELLS: 13",
+      "nSQL> ",
+    ])
+  end
+
+  it 'allows printing out the structure of a one-node btree' do
+    script = [3, 1, 2].map do |i|
+      "insert #{i} user#{i} person#{i}@example.com"
+    end
+    script << ".btree"
+    script << ".exit"
+
+    result = run_script(script)
+
+    expect(result).to match_array([
+      "nSQL> Executed.",
+      "nSQL> Executed.",
+      "nSQL> Executed.",
+      "nSQL> Tree:",
+      "leaf (size 3)",
+      "  - 0 : 3",
+      "  - 1 : 1",
+      "  - 2 : 2",
+      "nSQL> "
     ])
   end
 end
